@@ -9,4 +9,10 @@ pom.xml
 .lein-failures
 .lein-plugins
 .lein-env
-/resources/public/bower_components
+
+# ignore the bower dump directory
+bower_components
+
+# ignore emacs files 
+**/#*#
+**/.#*
