@@ -36,3 +36,4 @@ cp bower_components/moment/min/moment.min.js ./resources/public/js
 
 log "INFO" "Installing jquery"
 cp bower_components/jquery/dist/jquery.min.js ./resources/public/js
+cp bower_components/jquery/dist/jquery.min.map ./resources/public/js
