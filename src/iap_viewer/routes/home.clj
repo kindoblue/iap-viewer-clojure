@@ -1,6 +1,7 @@
 (ns iap-viewer.routes.home
   (:require [compojure.core :refer :all]
-            [iap-viewer.views.layout :as layout])
+            [iap-viewer.views.layout :as layout]
+            (ring.middleware [multipart-params :as mp]))
   (:import (org.bouncycastle.asn1 ASN1InputStream ASN1Primitive)
            (org.bouncycastle.asn1.cms ContentInfo SignedData)
            (org.bouncycastle.cms CMSSignedData)

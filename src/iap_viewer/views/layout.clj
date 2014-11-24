@@ -15,8 +15,9 @@
   (html
     [:form {:action "/verify" :method "post"}
       [:div.form-group
-       [:input#der-input-file {:type "file" :name "name" :placeholder "File input"}]
-       [:div.help-block "Upload binary (DER) receipt"]]]))
+       [:input#der-input-file {:type "file" :name "name" :size 20}]
+       [:div.help-block "Upload binary (DER) receipt"]]
+     [:input.btn.btn-default {:type "submit" :name "submit" :value "Upload"}]]))
 
 ;; helper function to unroll the th's in the purchases table
 (defn- map-tag [tag xs]
