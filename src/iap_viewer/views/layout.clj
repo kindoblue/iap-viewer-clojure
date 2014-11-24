@@ -26,7 +26,7 @@
   (html
    [:div.container
     [:div.page-header
-     :h1 "Apple In-App Purchases dumper/verifier"]
+     [:h1 "Apple In-App Purchases dumper/verifier"]]
     [:p.lead "The receipt you receive from Apple is DER encoded PKCS#7 signed message. You can upload a receipt and see the content here."]
     [:div.row
      [:div.col-md-6

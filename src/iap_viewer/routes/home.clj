@@ -9,7 +9,8 @@
            (java.security Security)))
 
 (defn home []
-  (layout/common [:h1 "Hello World!"]))
+  (layout/common
+   (layout/upload-display-page)))
 
 (defroutes home-routes
   (GET "/" [] (home)))
