@@ -1,6 +1,8 @@
 # iap-viewer
 
-FIXME
+_work in progress_
+
+Please come later
 
 ## Prerequisites
 
@@ -12,8 +14,9 @@ You will need [Leiningen][1] 1.7.0 or above installed.
 
 To start a web server for the application, run:
 
+    ./install_deps.sh
     lein ring server
 
 ## License
 
-Copyright © 2014 FIXME
+Copyright © 2014Stefano S
