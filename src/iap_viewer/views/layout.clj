@@ -16,7 +16,7 @@
     [:form {:action "/verify" :method "post"}
       [:div.form-group
        [:input#der-input-file {:type "file" :name "name" :size 20}]
-       [:div.help-block "Upload binary (DER) receipt"]]
+       [:div.help-block "Select an Apple receipt (DER format)"]]
      [:input.btn.btn-default {:type "submit" :name "submit" :value "Upload"}]]))
 
 ;; helper function to unroll the th's in the purchases table
