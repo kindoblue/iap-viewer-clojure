@@ -23,7 +23,7 @@
       ContentInfo/getInstance))
 
 (defn get-signed-data
-  "Get the receipts inside the Apple receipt"
+  "Get the all the info inside the Apple receipt, returning as enumeration-seq"
   [receipt-url]
   (->(get-content-info receipt-url)
      CMSSignedData.
@@ -33,17 +33,67 @@
      .getObjects
      enumeration-seq))
 
-(defn decode [x]
+(defn get-receipt-fields [x]
   (-> (.getObjects x)
       enumeration-seq))
 
-(defn parse [x]
-  (let [asn1-seq (decode x)]
-    (let [a (first asn1-seq)
-          b (second asn1-seq)]
-      [(.. a getValue intValue) (.. b getValue intValue)])))
+;; the input is a raw entry, in the form of a DLSequence #<DLSequence [a, b, #<content>]>
+;; in case of a purchase a = 17 and b = 1
+(defn is-purchase
+  "Return true if the input is a purchase"
+  [^org.bouncycastle.asn1.DLSequence x]
+  (println x)
+  (let [fields (get-receipt-fields x)
+        a (first fields)
+        b (second fields)]
+    (and (= 17 (.. a getValue intValue)) (= 1 (.. b getValue intValue)))))
 
-(map parse (get-signed-data receipt-url))
+
+;; return a list of org.bouncycastle.asn1.DLSequence objects
+;; representing the purchases
+(defn get-purchases-raw [records]
+  (filter is-purchase records))
+
+(defn parse-quantity [^org.bouncycastle.asn1.DEROctetString x] x)
+(defn parse-product-id [^org.bouncycastle.asn1.DEROctetString x] x)
+(defn parse-transaction-id [^org.bouncycastle.asn1.DEROctetString x] x)
+(defn parse-original-transaction-id [^org.bouncycastle.asn1.DEROctetString x] x)
+(defn parse-purchase-date [^org.bouncycastle.asn1.DEROctetString x] x)
+(defn parse-original-purchase-date [^org.bouncycastle.asn1.DEROctetString x] x)
+(defn parse-subscription-exp-date [^org.bouncycastle.asn1.DEROctetString x] x)
+(defn parse-cancellation-date [^org.bouncycastle.asn1.DEROctetString x] x)
+
+
+;; see https://developer.apple.com/library/ios/releasenotes/General/ValidateAppStoreReceipt/Chapters/ReceiptFields.html
+;;
+(defn parse-purchase-field [^org.bouncycastle.asn1.DLSequence x]
+  (let [^org.bouncycastle.asn1.ASN1Integer field-type-obj (.getObjectAt x 0)
+        field-type (.. field-type-obj getValue intValue)
+        field-value (.getObjectAt x 2)]
+    (println field-type)
+    (cond
+     (= field-type 1701) (parse-quantity field-value)
+     (= field-type 1702) (parse-product-id field-value)
+     (= field-type 1703) (parse-transaction-id field-value)
+     (= field-type 1705) (parse-original-transaction-id field-value)
+     (= field-type 1704) (parse-purchase-date field-value)
+     (= field-type 1706) (parse-original-purchase-date field-value)
+     (= field-type 1708) (parse-subscription-exp-date field-value)
+     (= field-type 1712) (parse-cancellation-date field-value)
+     :else nil)))
+
+(defn parse-purchase-fields [^org.bouncycastle.asn1.DLSet fields]
+  (let [field-seq (enumeration-seq (.getObjects fields))]
+    (map parse-purchase-field field-seq)))
+
+;; it gets a purchase as #<DLSequence [17, 1, #<DEROctetString>]>, i.e. a sequence
+;; of three objects. The third one is a byte sequence to be interpreted as a DLSet,
+;; the set of fields of the purchase record
+(defn parse-purchase [^org.bouncycastle.asn1.DLSequence raw-purchase]
+  (let [purchase-as-dlset (ASN1Primitive/fromByteArray (.getOctets (.getObjectAt raw-purchase 2)))]
+    (parse-purchase-fields purchase-as-dlset)))
+
+(map parse-purchase (get-purchases-raw (get-signed-data receipt-url)))
 
 ;; for example
 (get-signed-data receipt-url)
