@@ -82,17 +82,17 @@
 (defn parse-original-purchase-date [^org.bouncycastle.asn1.DEROctetString input-date]
   (let [a (ASN1Primitive/fromByteArray (.getOctets input-date))
         b (.getString a)]
-    {:org-purchase-date b})))
+    {:org-purchase-date b}))
 
 (defn parse-subscription-exp-date [^org.bouncycastle.asn1.DEROctetString input-date]
   (let [a (ASN1Primitive/fromByteArray (.getOctets input-date))
         b (.getString a)]
-    {:subscription-exp-date b})))
+    {:subscription-exp-date b}))
 
 (defn parse-cancellation-date [^org.bouncycastle.asn1.DEROctetString input-date]
   (let [a (ASN1Primitive/fromByteArray (.getOctets input-date))
         b (.getString a)]
-    {:cancellation-date b})))
+    {:cancellation-date b}))
 
 
 ;; see https://developer.apple.com/library/ios/releasenotes/General/ValidateAppStoreReceipt/Chapters/ReceiptFields.html
@@ -112,16 +112,14 @@
      (= field-type 1712) (parse-cancellation-date field-value)
      :else nil)))
 
-(defn parse-purchase-fields [^org.bouncycastle.asn1.DLSet fields]
-  (let [field-seq (enumeration-seq (.getObjects fields))]
-    (map parse-purchase-field field-seq)))
 
 ;; it gets a purchase as #<DLSequence [17, 1, #<DEROctetString>]>, i.e. a sequence
 ;; of three objects. The third one is a byte sequence to be interpreted as a DLSet,
 ;; the set of fields of the purchase record
 (defn parse-purchase [^org.bouncycastle.asn1.DLSequence raw-purchase]
-  (let [purchase-as-dlset (ASN1Primitive/fromByteArray (.getOctets (.getObjectAt raw-purchase 2)))]
-    (parse-purchase-fields purchase-as-dlset)))
+  (let [purchase-as-dlset (ASN1Primitive/fromByteArray (.getOctets (.getObjectAt raw-purchase 2)))
+        field-seq (enumeration-seq (.getObjects purchase-as-dlset))]
+    (reduce conj {} (map parse-purchase-field field-seq))))
 
 (map parse-purchase (get-purchases-raw (get-signed-data receipt-url)))
 
