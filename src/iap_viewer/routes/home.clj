@@ -38,11 +38,10 @@
       enumeration-seq))
 
 ;; the input is a raw entry, in the form of a DLSequence #<DLSequence [a, b, #<content>]>
-;; in case of a purchase a = 17 and b = 1
+;; in case of purchase --> a = 17 and b = 1
 (defn is-purchase
   "Return true if the input is a purchase"
   [^org.bouncycastle.asn1.DLSequence x]
-  (println x)
   (let [fields (get-receipt-fields x)
         a (first fields)
         b (second fields)]
@@ -54,14 +53,46 @@
 (defn get-purchases-raw [records]
   (filter is-purchase records))
 
-(defn parse-quantity [^org.bouncycastle.asn1.DEROctetString x] x)
-(defn parse-product-id [^org.bouncycastle.asn1.DEROctetString x] x)
-(defn parse-transaction-id [^org.bouncycastle.asn1.DEROctetString x] x)
-(defn parse-original-transaction-id [^org.bouncycastle.asn1.DEROctetString x] x)
-(defn parse-purchase-date [^org.bouncycastle.asn1.DEROctetString x] x)
-(defn parse-original-purchase-date [^org.bouncycastle.asn1.DEROctetString x] x)
-(defn parse-subscription-exp-date [^org.bouncycastle.asn1.DEROctetString x] x)
-(defn parse-cancellation-date [^org.bouncycastle.asn1.DEROctetString x] x)
+
+(defn parse-quantity [^org.bouncycastle.asn1.DEROctetString input]
+  (let [a (ASN1Primitive/fromByteArray (.getOctets input))
+        b (.. a getValue intValue)]
+    {:quantity b}))
+
+(defn parse-product-id [^org.bouncycastle.asn1.DEROctetString input]
+   (let [a (ASN1Primitive/fromByteArray (.getOctets input))
+         b (.getString a)]
+     {:product-id b}))
+
+(defn parse-transaction-id [^org.bouncycastle.asn1.DEROctetString input]
+  (let [a (ASN1Primitive/fromByteArray (.getOctets input))
+        b (.getString a)]
+    {:transaction-id b}))
+
+(defn parse-original-transaction-id [^org.bouncycastle.asn1.DEROctetString input]
+  (let [a (ASN1Primitive/fromByteArray (.getOctets input))
+        b (.getString a)]
+    {:org-transaction-id b}))
+
+(defn parse-purchase-date [^org.bouncycastle.asn1.DEROctetString input-date]
+  (let [a (ASN1Primitive/fromByteArray (.getOctets input-date))
+        b (.getString a)]
+    {:purchase-date b}))
+
+(defn parse-original-purchase-date [^org.bouncycastle.asn1.DEROctetString input-date]
+  (let [a (ASN1Primitive/fromByteArray (.getOctets input-date))
+        b (.getString a)]
+    {:org-purchase-date b})))
+
+(defn parse-subscription-exp-date [^org.bouncycastle.asn1.DEROctetString input-date]
+  (let [a (ASN1Primitive/fromByteArray (.getOctets input-date))
+        b (.getString a)]
+    {:subscription-exp-date b})))
+
+(defn parse-cancellation-date [^org.bouncycastle.asn1.DEROctetString input-date]
+  (let [a (ASN1Primitive/fromByteArray (.getOctets input-date))
+        b (.getString a)]
+    {:cancellation-date b})))
 
 
 ;; see https://developer.apple.com/library/ios/releasenotes/General/ValidateAppStoreReceipt/Chapters/ReceiptFields.html
@@ -70,7 +101,6 @@
   (let [^org.bouncycastle.asn1.ASN1Integer field-type-obj (.getObjectAt x 0)
         field-type (.. field-type-obj getValue intValue)
         field-value (.getObjectAt x 2)]
-    (println field-type)
     (cond
      (= field-type 1701) (parse-quantity field-value)
      (= field-type 1702) (parse-product-id field-value)
