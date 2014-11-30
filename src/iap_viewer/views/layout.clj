@@ -13,9 +13,9 @@
 ;; helper function, to add the upload form
 (defn- add-upload-form []
   (html
-    [:form {:action "/verify" :method "post"}
+    [:form {:action "/verify" :method "post" :enctype "multipart/form-data"}
       [:div.form-group
-       [:input#der-input-file {:type "file" :name "name" :size 20}]
+       [:input#der-input-file {:type "file" :name "upfile" :size 20000}]
        [:div.help-block "Select an Apple receipt (DER format)"]]
      [:input.btn.btn-default {:type "submit" :name "submit" :value "Upload"}]]))
 

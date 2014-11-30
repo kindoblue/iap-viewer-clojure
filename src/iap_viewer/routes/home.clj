@@ -120,10 +120,17 @@
 ;; for testing purposes only
 (def test-results (map parse-purchase (get-purchases (get-signed-data receipt-url))))
 
+;; {:size 62063, :tempfile #<File /var/folders/9_/0vs5vx611s74xpg0kymc0q3r0000gn/T/ring-multipart-2430006034048162240.tmp>, :content-type application/pdf, :filename short_curriculum.pdf}
+(defn- parse-file [file]
+  (println file)
+  (home (map parse-purchase (get-purchases (get-signed-data (file :tempfile))))))
 
-(defn home []
+(defn home [purchases]
   (layout/common
-   (layout/upload-display-page test-results)))
+   (layout/upload-display-page purchases)))
 
 (defroutes home-routes
-  (GET "/" [] (home)))
+  (GET "/" [] (home '()))
+  (mp/wrap-multipart-params
+   (POST "/verify" {params :params}
+         (parse-file (get params :upfile)))))
