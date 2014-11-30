@@ -116,14 +116,14 @@
      .getObjects
      enumeration-seq))
 
-(map parse-purchase (get-purchases (get-signed-data receipt-url)))
 
-;; for example
-(get-signed-data receipt-url)
+;; for testing purposes only
+(def test-results (map parse-purchase (get-purchases (get-signed-data receipt-url))))
+
 
 (defn home []
   (layout/common
-   (layout/upload-display-page)))
+   (layout/upload-display-page test-results)))
 
 (defroutes home-routes
   (GET "/" [] (home)))

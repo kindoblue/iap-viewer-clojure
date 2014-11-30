@@ -23,21 +23,25 @@
 (defn- map-tag [tag xs]
   (map (fn [x] [tag x]) xs))
 
-(defn upload-display-page [& purchases]
+(defn upload-display-page [purchases]
   (html
    [:div.container
     [:div.page-header
-     [:h1 "Apple In-App Purchases dumper/verifier"]]
-    [:p.lead "The receipt you receive from Apple is DER encoded PKCS#7 signed message. You can upload a receipt and see the content here."]
+     [:h1 "Apple In-App Purchases dumper"]]
+    [:p.lead "The receipt you receive from Apple is DER encoded PKCS#7 signed message. You can upload a receipt and see the content here. For the moment the receipt is not validated."]
     [:div.row
      [:div.col-md-6
       (add-upload-form)]]
     (if (seq purchases)
       [:div.row
-       [:table.table.table-striped.sortable
+       [:table#results-table.table.table-striped.sortable {:style "margin-top:20pt"}
         [:thead
          [:tr (map-tag :th ["Transaction ID" "Product ID" "Purchase Date" "Original Purchase Date" "Quantity"])]]
         [:tbody
-         [:tr]]]]
-      nil)
-    ]))
+         (for [{:keys [transaction-id product-id purchase-date org-purchase-date quantity]} purchases]
+           [:tr
+            [:td transaction-id]
+            [:td product-id]
+            [:td purchase-date]
+            [:td org-purchase-date]
+            [:td quantity]])]]])]))
