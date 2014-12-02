@@ -4,6 +4,8 @@ _work in progress_
 
 Please come later
 
+![screenshot](screenshot.png)
+
 ## Prerequisites
 
 You will need [Leiningen][1] 1.7.0 or above installed.
