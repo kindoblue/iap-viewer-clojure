@@ -2,7 +2,7 @@
 
 _work in progress_
 
-Please come later
+A simple utility to dump (still no verification) the content of an In-App purchase receipt from Apple store backend
 
 ![screenshot](screenshot.png)
 
@@ -21,4 +21,4 @@ To start a web server for the application, run:
 
 ## License
 
-Copyright © 2014Stefano S
+Copyright © 2014  Stefano S
