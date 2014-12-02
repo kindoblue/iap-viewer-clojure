@@ -7,9 +7,6 @@
            (java.security Security)))
 
 
-;; test receipt
-(def receipt-url (clojure.java.io/resource "1000000101882225.cer"))
-
 
 ;; the input is a raw entry, in the form of a DLSequence #<DLSequence [a, b, #<content>]>
 ;; in case of purchase --> a = 17 and b = 1
@@ -21,62 +18,22 @@
     (and (= 17 (.. a getValue intValue)) (= 1 (.. b getValue intValue)))))
 
 
-(defn- parse-quantity [^org.bouncycastle.asn1.DEROctetString input]
-  (let [a (ASN1Primitive/fromByteArray (.getOctets input))
-        b (.. a getValue intValue)]
-    {:quantity b}))
-
-(defn- parse-product-id [^org.bouncycastle.asn1.DEROctetString input]
-   (let [a (ASN1Primitive/fromByteArray (.getOctets input))
-         b (.getString a)]
-     {:product-id b}))
-
-(defn- parse-transaction-id [^org.bouncycastle.asn1.DEROctetString input]
-  (let [a (ASN1Primitive/fromByteArray (.getOctets input))
-        b (.getString a)]
-    {:transaction-id b}))
-
-(defn- parse-original-transaction-id [^org.bouncycastle.asn1.DEROctetString input]
-  (let [a (ASN1Primitive/fromByteArray (.getOctets input))
-        b (.getString a)]
-    {:org-transaction-id b}))
-
-(defn- parse-purchase-date [^org.bouncycastle.asn1.DEROctetString input-date]
-  (let [a (ASN1Primitive/fromByteArray (.getOctets input-date))
-        b (.getString a)]
-    {:purchase-date b}))
-
-(defn- parse-original-purchase-date [^org.bouncycastle.asn1.DEROctetString input-date]
-  (let [a (ASN1Primitive/fromByteArray (.getOctets input-date))
-        b (.getString a)]
-    {:org-purchase-date b}))
-
-(defn- parse-subscription-exp-date [^org.bouncycastle.asn1.DEROctetString input-date]
-  (let [a (ASN1Primitive/fromByteArray (.getOctets input-date))
-        b (.getString a)]
-    {:subscription-exp-date b}))
-
-(defn- parse-cancellation-date [^org.bouncycastle.asn1.DEROctetString input-date]
-  (let [a (ASN1Primitive/fromByteArray (.getOctets input-date))
-        b (.getString a)]
-    {:cancellation-date b}))
-
-
 ;; see https://developer.apple.com/library/ios/releasenotes/General/ValidateAppStoreReceipt/Chapters/ReceiptFields.html
 ;;
 (defn- parse-purchase-field [^org.bouncycastle.asn1.DLSequence x]
   (let [^org.bouncycastle.asn1.ASN1Integer field-type-obj (.getObjectAt x 0)
         field-type (.. field-type-obj getValue intValue)
-        field-value (.getObjectAt x 2)]
+        field-value-obj (.getObjectAt x 2)
+        field-value (ASN1Primitive/fromByteArray (.getOctets field-value-obj))]
     (cond
-     (= field-type 1701) (parse-quantity field-value)
-     (= field-type 1702) (parse-product-id field-value)
-     (= field-type 1703) (parse-transaction-id field-value)
-     (= field-type 1705) (parse-original-transaction-id field-value)
-     (= field-type 1704) (parse-purchase-date field-value)
-     (= field-type 1706) (parse-original-purchase-date field-value)
-     (= field-type 1708) (parse-subscription-exp-date field-value)
-     (= field-type 1712) (parse-cancellation-date field-value))))
+     (= field-type 1701) {:quantity (.. field-value getValue intValue)}
+     (= field-type 1702) {:product-id (.getString field-value)}
+     (= field-type 1703) {:transaction-id (.getString field-value)}
+     (= field-type 1705) {:org-transaction-id (.getString field-value)}
+     (= field-type 1704) {:purchase-date (.getString field-value)}
+     (= field-type 1706) {:org-purchase-date (.getString field-value)}
+     (= field-type 1708) {:subscription-exp-date (.getString field-value)}
+     (= field-type 1712) {:cancellation-date (.getString field-value)})))
 
 
 ;; it gets a purchase as #<DLSequence [17, 1, #<DEROctetString>]>, i.e. a sequence
