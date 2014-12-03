@@ -77,4 +77,5 @@
 (defn get-purchases-from-url
   "Return a list of maps, one for every purchase. As input the url to the apple receipt"
   [receipt-url]
+  ;; TODO: refactor! open and close the stream here
   (map parse-purchase (get-purchases (get-signed-data receipt-url))))
