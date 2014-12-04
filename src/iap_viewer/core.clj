@@ -1,4 +1,5 @@
 (ns iap-viewer.core
+  (:require [clojure.pprint])
   (:import (org.bouncycastle.asn1 ASN1InputStream ASN1Primitive)
            (org.bouncycastle.asn1.cms ContentInfo SignedData)
            (org.bouncycastle.cms CMSSignedData)
@@ -83,4 +84,4 @@
 ;; to be continued
 (defn main [input-file-name]
   (let [url (clojure.java.io/as-url (java.io.File. input-file-name))]
-    (get-purchases-from-url url)))
+    (clojure.pprint/print-table (get-purchases-from-url url))))
