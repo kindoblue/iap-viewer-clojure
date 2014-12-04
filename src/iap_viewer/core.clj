@@ -4,7 +4,8 @@
            (org.bouncycastle.cms CMSSignedData)
            (org.bouncycastle.jce.provider BouncyCastleProvider)
            (java.security.cert CertificateFactory)
-           (java.security Security)))
+           (java.security Security)
+           (java.io.File)))
 
 
 
@@ -78,3 +79,8 @@
   [receipt-url]
   (with-open [stream (.openStream receipt-url)]
     (map parse-purchase (get-purchases (get-signed-data stream)))))
+
+;; to be continued
+(defn main [input-file-name]
+  (let [url (clojure.java.io/as-url (java.io.File. input-file-name))]
+    (get-purchases-from-url url)))
