@@ -10,7 +10,7 @@ You can run it as a web application
 
 Or you can run at command line
 
-![screenshot](screenshot_1.png)
+![screenshot](screenshot-1.png)
 
 ## Prerequisites
 
