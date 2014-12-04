@@ -23,9 +23,6 @@ You will need [Leiningen][1] 1.7.0 or above installed.
 To start a web server for the application, run:
 
     ./install_deps.sh
-
-Then, if you want the web app, type:
-
     lein ring server
 
 Or you can simply use the tool as command line utility like this:
