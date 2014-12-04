@@ -52,17 +52,16 @@
 
 (defn- get-content-info
   "Get the content info object representing the Apple receipt"
-  [receipt-url]
-  (-> (.openStream receipt-url)
-      ASN1InputStream.
+  [^java.io.BufferedInputStream input]
+  (-> (ASN1InputStream. input)
       .readObject
       ContentInfo/getInstance))
 
 
 (defn- get-signed-data
   "Get the all the info inside the Apple receipt, returning as enumeration-seq"
-  [receipt-url]
-  (->(get-content-info receipt-url)
+  [^java.io.BufferedInputStream input]
+  (->(get-content-info input)
      CMSSignedData.
      .getSignedContent
      .getContent
@@ -77,5 +76,5 @@
 (defn get-purchases-from-url
   "Return a list of maps, one for every purchase. As input the url to the apple receipt"
   [receipt-url]
-  ;; TODO: refactor! open and close the stream here
-  (map parse-purchase (get-purchases (get-signed-data receipt-url))))
+  (with-open [stream (.openStream receipt-url)]
+    (map parse-purchase (get-purchases (get-signed-data stream)))))
