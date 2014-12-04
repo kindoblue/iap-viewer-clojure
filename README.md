@@ -10,6 +10,8 @@ You can run it as a web application
 
 Or you can run at command line
 
+![screenshot](screenshot_1.png)
+
 ## Prerequisites
 
 You will need [Leiningen][1] 1.7.0 or above installed.
