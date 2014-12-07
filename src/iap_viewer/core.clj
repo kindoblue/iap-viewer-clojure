@@ -59,17 +59,22 @@
       .readObject
       ContentInfo/getInstance))
 
-
+;; this function extract the signed data from the Apple receipt
+;; it does while catching every exception because we care only
+;; about the nominal case. Tempted to use the maybe-m monad ;-)
+;; but we have a chain on interop calls, so not sure how beneficial
+;; would have been using the monad
 (defn- get-signed-data
   "Get the all the info inside the Apple receipt, returning as enumeration-seq"
   [^java.io.BufferedInputStream input]
-  (->(get-content-info input)
-     CMSSignedData.
-     .getSignedContent
-     .getContent
-     ASN1Primitive/fromByteArray
-     .getObjects
-     enumeration-seq))
+  (try  (->(get-content-info input)
+           CMSSignedData.
+           .getSignedContent
+           .getContent
+           ASN1Primitive/fromByteArray
+           .getObjects
+           enumeration-seq)
+        (catch Exception e)))
 
 
 ;; =======================
