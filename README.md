@@ -15,8 +15,11 @@ Or you can run at command line
 ## Prerequisites
 
 You will need [Leiningen][1] 1.7.0 or above installed.
+For the webapp, you will need [Bower][2] to install css and scripts needed.
+
 
 [1]: https://github.com/technomancy/leiningen
+[2]: http://bower.io
 
 ## Running
 
