@@ -9,6 +9,7 @@ pom.xml
 .lein-failures
 .lein-plugins
 .lein-env
+/resources/public
 
 # ignore the bower dump directory
 bower_components
