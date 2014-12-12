@@ -23,6 +23,10 @@ log() {
 # install the needed web stuff
 bower install
 
+# insure the destination dirs for scripts and styles exist
+mkdir -p ./resources/public/js
+mkdir -p ./resources/public/css  
+
 # copy in place the needed styles and scripts
 
 log "INFO" "Installing bootstrap"
