@@ -76,6 +76,14 @@
            enumeration-seq)
         (catch Exception e)))
 
+;; this function extract the certificates from the receipt
+;; TODO support selection based on signer id
+(defn get-certificates [^java.io.BufferedInputStream stream]
+  (->(get-content-info stream)
+     CMSSignedData.
+     .getCertificates
+     (.getMatches nil)))
+
 
 ;; =======================
 ;;      entry point
@@ -90,5 +98,5 @@
 (defn main
   ([] (println "WARN: please specify the file to parse (expected der encoded filename)"))
   ([input-file-name]
-     (let [url (clojure.java.io/as-url (java.io.File. input-file-name))]
-       (clojure.pprint/print-table (get-purchases-from-url url)))))
+   (let [url (clojure.java.io/as-url (java.io.File. input-file-name))]
+     (clojure.pprint/print-table (get-purchases-from-url url)))))
