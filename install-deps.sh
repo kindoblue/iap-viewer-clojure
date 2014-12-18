@@ -20,7 +20,10 @@ log() {
         fi >&2
 }
 
-# install the needed web stuff
+# check if bower is installed
+command -v "bower" >/dev/null 2>&1 || { log "ERROR" "Please install bower first"; exit 1; }
+
+# install the needed web stuff by using bower, if installed
 bower install
 
 # insure the destination dirs for scripts and styles exist
