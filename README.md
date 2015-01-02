@@ -17,6 +17,9 @@ You will need [Leiningen][1] 1.7.0 or above installed.
 
 For the webapp, you will need [Bower][2] to install the needed scripts and stylesheets.
 
+The first time you need to run a small script to put in place some needed files, as follow:
+
+    ./install_deps.sh
 
 [1]: https://github.com/technomancy/leiningen
 [2]: http://bower.io
@@ -25,7 +28,6 @@ For the webapp, you will need [Bower][2] to install the needed scripts and style
 
 To start a web server for the application, run:
 
-    ./install_deps.sh
     lein ring server
 
 Or you can simply use the tool as command line utility like this:
