@@ -29,7 +29,7 @@
 
 ;; get the local CA certificate
 (defn apple-ca-cert []
-  (let [cert (clojure.java.io/resource "AppleIncRootCertificate.cer")]
+  (let [cert (clojure.java.io/resource "AppleIncRootCertificate.crt")]
     (with-open [stream (.openStream cert)]
       (.generateCertificate (CertificateFactory/getInstance "X.509" "BC") stream ))))
 
