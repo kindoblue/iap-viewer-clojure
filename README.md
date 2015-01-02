@@ -1,8 +1,7 @@
 # iap-viewer
 
-_work in progress_
 
-A simple utility to dump (still no verification) the content of an In-App purchase receipt from Apple store backend.
+A simple utility to dump the content of an In-App purchase receipt from Apple store backend. The content is validated using a local root CA certificate from Apple.
 
 You can run it as a web application
 
