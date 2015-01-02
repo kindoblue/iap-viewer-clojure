@@ -6,6 +6,8 @@
            (org.bouncycastle.jce.provider BouncyCastleProvider)
            (java.security.cert CertificateFactory TrustAnchor PKIXParameters CertPathValidator)
            (org.bouncycastle.cert.jcajce JcaX509CertificateConverter)
+           (org.bouncycastle.cert.selector X509CertificateHolderSelector)
+           (org.bouncycastle.cms.jcajce JcaSimpleSignerInfoVerifierBuilder)
            (java.security Security)
            (java.io.File)))
 
@@ -46,32 +48,70 @@
     (.setDate (java.util.Date.))
     (.setRevocationEnabled false)))
 
+
 ;; this function extract the certificates from the signed data
-(defn get-certificates [^org.bouncycastle.cms.CMSSignedData signed-data]
+;; optionally you can pass a not null signer id to get only the
+;; corresponding certificate
+(defn get-certificates
+  [^org.bouncycastle.cms.CMSSignedData signed-data]
   (->(.getCertificates signed-data)
      (.getMatches nil)))
 
+
 ;;
 (defn get-x509-certificates
-  [signed-data]
+  [^org.bouncycastle.cms.CMSSignedData signed-data]
   (map convert-to-x509 (get-certificates signed-data)))
 
-;; create the cert path
+(defn get-signer-info
+  [^org.bouncycastle.cms.CMSSignedData signed-data]
+  (-> signed-data
+      .getSignerInfos
+      .getSigners
+      first))
+
+(defn get-signer-id
+  [^org.bouncycastle.cms.CMSSignedData signed-data]
+  (.getSID (get-signer-info signed-data)))
+
+(defn get-signer-certificate
+  [^org.bouncycastle.cms.CMSSignedData signed-data]
+  (let [signer-id (get-signer-id signed-data)]
+    (-> signed-data
+        .getCertificates
+        (.getMatches signer-id)
+        first
+        convert-to-x509)))
+
+;; Create the cert path
 (defn cert-path-from-list
   "Create the cert path with the input list of certificates"
   [cert-list]
   (.generateCertPath (CertificateFactory/getInstance "X.509" "BC") cert-list))
 
-(defn validate-cert-path
+(defn validate-cert-path-helper
   [cert-path params]
   (let [validator (CertPathValidator/getInstance "PKIX" "BC")]
     (.validate validator cert-path params)))
 
 ;; TODO: validate the signated content. At the moment only the chain of certificates
 ;; it is validated
-(defn validate
+(defn validate-cert-path
   [^org.bouncycastle.cms.CMSSignedData signed-data]
   (let [certs (get-x509-certificates signed-data)
         cert-path (cert-path-from-list certs)
         pkix-params (create-pkix-params)]
-    (validate-cert-path cert-path pkix-params)))
+    (validate-cert-path-helper cert-path pkix-params)))
+
+(defn create-verifier [certificate]
+  (-> (JcaSimpleSignerInfoVerifierBuilder.)
+      (.setProvider "BC")
+      (.build certificate)))
+
+(defn verify-signature
+  [^org.bouncycastle.cms.CMSSignedData signed-data]
+  (let [signer-info (get-signer-info signed-data)
+        signer-cert (get-signer-certificate signed-data)
+        with-verifier (create-verifier signer-cert)
+        dummy (validate-cert-path signed-data)]
+    (.verify signer-info with-verifier)))

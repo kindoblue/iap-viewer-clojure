@@ -66,7 +66,7 @@
   (with-open [stream (.openStream receipt-url)]
     (let [signed-data (common/get-cms-signed-data stream)]
       (validation/init-bc-provider)
-      (validation/validate signed-data)
+      (validation/verify-signature signed-data)
       (map parse-purchase (get-raw-purchases (common/get-content signed-data))))))
 
 ;; to be continued
