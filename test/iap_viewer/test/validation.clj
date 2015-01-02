@@ -2,7 +2,8 @@
   (:use clojure.test
         iap-viewer.validation))
 
-
+;; macro to run tests on private functions
+;; copied from http://nakkaya.com/2009/11/18/unit-testing-in-clojure/
 (defmacro with-private-fns [[ns fns] & tests]
   "Refers private fns from ns and runs tests in context."
   `(let ~(reduce #(conj %1 %2 `(ns-resolve '~ns '~%2)) [] fns)
@@ -32,10 +33,3 @@
         ;; is the subject the one from Apple?
         (is (= (.toString (.getSubjectDN apple-ca))
                "C=US,O=Apple Inc.,OU=Apple Certification Authority,CN=Apple Root CA"))))))
-
-
-
-(defn geppo []
-  (let [receipt-url  (clojure.java.io/resource "1000000101882225.cer")]
-    (with-open [stream (.openStream receipt-url)]
-      (get-certificates stream))))
