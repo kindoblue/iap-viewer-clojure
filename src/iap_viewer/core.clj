@@ -13,7 +13,7 @@
 
 ;; the input is a raw entry, in the form of a DLSequence #<DLSequence [a, b, #<content>]>
 ;; in case of purchase --> a = 17 and b = 1
-(defn- is-purchase
+(defn- purchase?
   "Return true if the input is a purchase"
   [^org.bouncycastle.asn1.DLSequence x]
   (let [a (.getObjectAt x 0)
@@ -51,7 +51,7 @@
 ;; return a list of org.bouncycastle.asn1.DLSequence objects
 ;; representing the purchases
 (defn- get-raw-purchases [records]
-  (filter is-purchase records))
+  (filter purchase? records))
 
 
 
