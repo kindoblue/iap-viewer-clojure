@@ -89,25 +89,43 @@
   [cert-list]
   (.generateCertPath (CertificateFactory/getInstance "X.509" "BC") cert-list))
 
+
+
 (defn validate-cert-path-helper
   [cert-path params]
   (let [validator (CertPathValidator/getInstance "PKIX" "BC")]
     (.validate validator cert-path params)))
 
-;; TODO: validate the signated content. At the moment only the chain of certificates
-;; it is validated
-(defn validate-cert-path
+;; it validates the certificate chain contained into the
+;; given signed data.
+;; 1) get the list of the certificates in x509 format
+;; 2) creates the certificate path from that list
+;; 3) creates a pkix parameters to drive the validation
+;; 4) validate the cert path (using the helper function)
+(defn- validate-cert-path
+  "Validates the certificate chain within the gived signed data object"
   [^org.bouncycastle.cms.CMSSignedData signed-data]
   (let [certs (get-x509-certificates signed-data)
         cert-path (cert-path-from-list certs)
         pkix-params (create-pkix-params)]
     (validate-cert-path-helper cert-path pkix-params)))
 
-(defn create-verifier [certificate]
+
+;; given a certificate, creates a verifier object that
+;; can be used to verify signatures in the cms signed
+;; content
+(defn- create-verifier
+  "It creates a verifier object using the given certificate"
+  [certificate]
   (-> (JcaSimpleSignerInfoVerifierBuilder.)
       (.setProvider "BC")
       (.build certificate)))
 
+
+
+;; =======================
+;;      entry point
+;; =======================
 (defn verify-signature
   [^org.bouncycastle.cms.CMSSignedData signed-data]
   (let [signer-info (get-signer-info signed-data)

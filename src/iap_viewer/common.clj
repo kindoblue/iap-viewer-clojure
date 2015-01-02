@@ -1,14 +1,11 @@
 (ns iap-viewer.common
   (:import (org.bouncycastle.asn1 ASN1InputStream ASN1Primitive)
            (org.bouncycastle.cms CMSSignedData)
-           (org.bouncycastle.asn1.cms ContentInfo SignedData)
-           (org.bouncycastle.cms CMSSignedData)
-           (org.bouncycastle.jce.provider BouncyCastleProvider)
            (org.bouncycastle.asn1.cms ContentInfo)))
 
 
 (defn get-cms-signed-data
-  "Get the content info object representing the Apple receipt"
+  "Get the cms signed data object, which represent the Apple receipt"
   [^java.io.BufferedInputStream input]
   (-> (ASN1InputStream. input)
       .readObject
@@ -30,9 +27,3 @@
          .getObjects
          enumeration-seq)
         (catch Exception e)))
-
-
-(defn geppo []
-  (let [receipt-url  (clojure.java.io/resource "1000000101882225.cer")]
-    (with-open [stream (.openStream receipt-url)]
-      (get-cms-signed-data stream))))
