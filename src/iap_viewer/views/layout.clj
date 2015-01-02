@@ -28,7 +28,7 @@
    [:div.container
     [:div.page-header
      [:h1 "Apple In-App Purchases dumper"]]
-    [:p.lead "The receipt you receive from Apple is DER encoded PKCS#7 signed message. You can upload a receipt and see the content here. For the moment the receipt is not validated."]
+    [:p.lead "The receipt you receive from Apple is DER encoded PKCS#7 signed message. You can upload a receipt and see the content here. The receipt is validated but still no proper error handling when things go wrong."]
     [:div.row
      [:div.col-md-6
       (add-upload-form)]]
