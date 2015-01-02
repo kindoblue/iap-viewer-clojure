@@ -1,10 +1,11 @@
 (ns iap-viewer.core
-  (:require [clojure.pprint])
+  (:require [clojure.pprint]
+            [iap-viewer.common :as common]
+            [iap-viewer.validation :as validation])
   (:import (org.bouncycastle.asn1 ASN1InputStream ASN1Primitive)
            (org.bouncycastle.asn1.cms ContentInfo SignedData)
            (org.bouncycastle.cms CMSSignedData)
            (org.bouncycastle.jce.provider BouncyCastleProvider)
-           (org.bouncycastle.cert.jcajce JcaX509CertificateConverter)
            (java.security.cert CertificateFactory)
            (java.security Security)
            (java.io.File)))
@@ -49,40 +50,9 @@
 
 ;; return a list of org.bouncycastle.asn1.DLSequence objects
 ;; representing the purchases
-(defn- get-purchases [records]
+(defn- get-raw-purchases [records]
   (filter is-purchase records))
 
-(defn- get-content-info
-  "Get the content info object representing the Apple receipt"
-  [^java.io.BufferedInputStream input]
-  (-> (ASN1InputStream. input)
-      .readObject
-      ContentInfo/getInstance))
-
-;; this function extract the signed data from the Apple receipt
-;; it does while catching every exception because we care only
-;; about the nominal case. Tempted to use the maybe-m monad ;-)
-;; but we have a chain on interop calls, so not sure how beneficial
-;; would have been using the monad
-(defn- get-signed-data
-  "Get the all the info inside the Apple receipt, returning as enumeration-seq"
-  [^java.io.BufferedInputStream input]
-  (try  (->(get-content-info input)
-           CMSSignedData.
-           .getSignedContent
-           .getContent
-           ASN1Primitive/fromByteArray
-           .getObjects
-           enumeration-seq)
-        (catch Exception e)))
-
-;; this function extract the certificates from the receipt
-;; TODO support selection based on signer id
-(defn get-certificates [^java.io.BufferedInputStream stream]
-  (->(get-content-info stream)
-     CMSSignedData.
-     .getCertificates
-     (.getMatches nil)))
 
 
 ;; =======================
@@ -92,7 +62,10 @@
   "Return a list of maps, one for every purchase. As input the url to the apple receipt"
   [receipt-url]
   (with-open [stream (.openStream receipt-url)]
-    (map parse-purchase (get-purchases (get-signed-data stream)))))
+    (let [signed-data (common/get-cms-signed-data stream)]
+      (validation/init-bc-provider)
+      (validation/validate signed-data)
+      (map parse-purchase (get-raw-purchases (common/get-content signed-data))))))
 
 ;; to be continued
 (defn main

@@ -1,5 +1,5 @@
 (defproject iap-viewer "0.1.0-SNAPSHOT"
-  :description "A simple webapp to show the in app purchases within a receipt file from Apple"
+  :description "A simple webapp/command line util to show the in app purchases within a receipt file from Apple"
   :url "http://iap-viewer.kindoblue.nl"
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [compojure "1.1.6"]

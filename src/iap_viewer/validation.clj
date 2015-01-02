@@ -1,10 +1,11 @@
 (ns iap-viewer.validation
-  (:require [iap-viewer.core])
+  (:require [iap-viewer.common :as common])
   (:import (org.bouncycastle.asn1 ASN1InputStream ASN1Primitive)
            (org.bouncycastle.asn1.cms ContentInfo SignedData)
            (org.bouncycastle.cms CMSSignedData)
            (org.bouncycastle.jce.provider BouncyCastleProvider)
            (java.security.cert CertificateFactory TrustAnchor PKIXParameters CertPathValidator)
+           (org.bouncycastle.cert.jcajce JcaX509CertificateConverter)
            (java.security Security)
            (java.io.File)))
 
@@ -38,21 +39,25 @@
   []
   #{(TrustAnchor. (apple-ca-cert) nil)})
 
-(defn pkix-params
+(defn create-pkix-params
   "Returns the pkix parameters based of trust anchor object and correcty configured"
   []
   (doto (PKIXParameters. (trust-anchor-set))
     (.setDate (java.util.Date.))
     (.setRevocationEnabled false)))
 
-;; TODO to complete
-(defn get-x509-certificates []
-  (let [receipt-url  (clojure.java.io/resource "1000000101882225.cer")]
-    (with-open [stream (.openStream receipt-url)]
-      (map convert-to-x509 (get-certificates stream)))))
+;; this function extract the certificates from the signed data
+(defn get-certificates [^org.bouncycastle.cms.CMSSignedData signed-data]
+  (->(.getCertificates signed-data)
+     (.getMatches nil)))
+
+;;
+(defn get-x509-certificates
+  [signed-data]
+  (map convert-to-x509 (get-certificates signed-data)))
 
 ;; create the cert path
-(defn cert-path
+(defn cert-path-from-list
   "Create the cert path with the input list of certificates"
   [cert-list]
   (.generateCertPath (CertificateFactory/getInstance "X.509" "BC") cert-list))
@@ -61,3 +66,12 @@
   [cert-path params]
   (let [validator (CertPathValidator/getInstance "PKIX" "BC")]
     (.validate validator cert-path params)))
+
+;; TODO: validate the signated content. At the moment only the chain of certificates
+;; it is validated
+(defn validate
+  [^org.bouncycastle.cms.CMSSignedData signed-data]
+  (let [certs (get-x509-certificates signed-data)
+        cert-path (cert-path-from-list certs)
+        pkix-params (create-pkix-params)]
+    (validate-cert-path cert-path pkix-params)))

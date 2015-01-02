@@ -11,4 +11,5 @@
 
 (defn geppo []
   (let [receipt-url  (clojure.java.io/resource "1000000101882225.cer")]
-    (get-certificates receipt-url)))
+    (with-open [stream (.openStream receipt-url)]
+      (get-certificates stream))))
