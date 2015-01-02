@@ -22,7 +22,7 @@
 ;; which can then be converted into Java X509Certificate objects
 ;; if required. The reason this is done is to allow the provision
 ;; and manipulation of certificates in a JVM independent manner
-(defn convert-to-x509
+(defn- convert-to-x509
   "Convert the X509CertificateHolder to a X509Certificate"
   [holder]
   (-> (JcaX509CertificateConverter.)
@@ -30,18 +30,18 @@
       (.getCertificate holder)))
 
 ;; get the local CA certificate
-(defn apple-ca-cert []
+(defn- apple-ca-cert []
   (let [cert (clojure.java.io/resource "AppleIncRootCertificate.crt")]
     (with-open [stream (.openStream cert)]
       (.generateCertificate (CertificateFactory/getInstance "X.509" "BC") stream ))))
 
 ;; get the trust anchor, wrapped in a set.
 ;; the trust anchor is based on our LOCAL apple CA certificate
-(defn trust-anchor-set
+(defn- trust-anchor-set
   []
   #{(TrustAnchor. (apple-ca-cert) nil)})
 
-(defn create-pkix-params
+(defn- create-pkix-params
   "Returns the pkix parameters based of trust anchor object and correcty configured"
   []
   (doto (PKIXParameters. (trust-anchor-set))
@@ -52,29 +52,29 @@
 ;; this function extract the certificates from the signed data
 ;; optionally you can pass a not null signer id to get only the
 ;; corresponding certificate
-(defn get-certificates
+(defn- get-certificates
   [^org.bouncycastle.cms.CMSSignedData signed-data]
   (->(.getCertificates signed-data)
      (.getMatches nil)))
 
 
 ;;
-(defn get-x509-certificates
+(defn- get-x509-certificates
   [^org.bouncycastle.cms.CMSSignedData signed-data]
   (map convert-to-x509 (get-certificates signed-data)))
 
-(defn get-signer-info
+(defn- get-signer-info
   [^org.bouncycastle.cms.CMSSignedData signed-data]
   (-> signed-data
       .getSignerInfos
       .getSigners
       first))
 
-(defn get-signer-id
+(defn- get-signer-id
   [^org.bouncycastle.cms.CMSSignedData signed-data]
   (.getSID (get-signer-info signed-data)))
 
-(defn get-signer-certificate
+(defn- get-signer-certificate
   [^org.bouncycastle.cms.CMSSignedData signed-data]
   (let [signer-id (get-signer-id signed-data)]
     (-> signed-data
@@ -84,14 +84,14 @@
         convert-to-x509)))
 
 ;; Create the cert path
-(defn cert-path-from-list
+(defn- cert-path-from-list
   "Create the cert path with the input list of certificates"
   [cert-list]
   (.generateCertPath (CertificateFactory/getInstance "X.509" "BC") cert-list))
 
 
 
-(defn validate-cert-path-helper
+(defn- validate-cert-path-helper
   [cert-path params]
   (let [validator (CertPathValidator/getInstance "PKIX" "BC")]
     (.validate validator cert-path params)))
