@@ -11,14 +11,6 @@
            (java.io.File)))
 
 
-;; the input is a raw entry, in the form of a DLSequence #<DLSequence [a, b, #<content>]>
-;; in case of purchase --> a = 17 and b = 1
-(defn- purchase?
-  "Return true if the input is a purchase"
-  [^org.bouncycastle.asn1.DLSequence x]
-  (let [a (.getObjectAt x 0)
-        b (.getObjectAt x 1)]
-    (and (= 17 (.. a getValue intValue)) (= 1 (.. b getValue intValue)))))
 
 
 ;; see https://developer.apple.com/library/ios/releasenotes/General/ValidateAppStoreReceipt/Chapters/ReceiptFields.html
@@ -46,6 +38,16 @@
   (let [purchase-as-dlset (ASN1Primitive/fromByteArray (.getOctets (.getObjectAt raw-purchase 2)))
         field-sequence (enumeration-seq (.getObjects purchase-as-dlset))]
     (reduce conj {} (map parse-purchase-field field-sequence))))
+
+
+;; the input is a raw entry, in the form of a DLSequence #<DLSequence [a, b, #<content>]>
+;; in case of purchase --> a = 17 and b = 1
+(defn- purchase?
+  "Return true if the input is a purchase"
+  [^org.bouncycastle.asn1.DLSequence x]
+  (let [a (.getObjectAt x 0)
+        b (.getObjectAt x 1)]
+    (and (= 17 (.. a getValue intValue)) (= 1 (.. b getValue intValue)))))
 
 
 ;; return a list of org.bouncycastle.asn1.DLSequence objects
