@@ -49,16 +49,17 @@
     (.setRevocationEnabled false)))
 
 
-;; this function extract the certificates from the signed data
-;; optionally you can pass a not null signer id to get only the
-;; corresponding certificate
+;; this function extract the certificates from the signed
+;; data, and return them as a list of X509CertificateHolder
+;; objects
 (defn- get-certificates
   [^org.bouncycastle.cms.CMSSignedData signed-data]
   (->(.getCertificates signed-data)
      (.getMatches nil)))
 
 
-;;
+;; this functions get the certificate from the signed
+;; data, and return them as X509CertificateObject object
 (defn- get-x509-certificates
   [^org.bouncycastle.cms.CMSSignedData signed-data]
   (map convert-to-x509 (get-certificates signed-data)))

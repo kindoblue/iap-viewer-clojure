@@ -5,8 +5,6 @@
   (:import (org.bouncycastle.asn1 ASN1Primitive)))
 
 
-
-
 ;; see https://developer.apple.com/library/ios/releasenotes/General/ValidateAppStoreReceipt/Chapters/ReceiptFields.html
 ;;
 (defn- parse-purchase-field [^org.bouncycastle.asn1.DLSequence x]

@@ -17,6 +17,7 @@
 ;; about the nominal case. Tempted to use the maybe-m monad ;-)
 ;; but we have a chain on interop calls, so not sure how beneficial
 ;; would have been using the monad
+;; TODO rename as get-receipt-content and remove try catch
 (defn get-content
   "Get the all the info inside the Apple receipt, returning as enumeration-seq"
   [^org.bouncycastle.cms.CMSSignedData input]
