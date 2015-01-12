@@ -102,20 +102,13 @@
 ;;
 (defn build-end-certificate
   [subject-public-key   ;; the public key of the subject being certified
+   subject-x500-name    ;; the x500 name of the subject
    signing-private-key  ;; the private key of the issuer (the intermediate)
-   signing-certificate       ;; the CA certificate
+   signing-certificate  ;; the intermediate certificate, in this case
    ]
-  (let [content-signer (build-content-signer signing-private-key)
-        signer-x500-name (.getSubjectX500Principal signing-certificate)
-        builder (get-certificate-builder "CN=End" "a" signer-x500-name subject-public-key)
-        ext-util  (JcaX509ExtensionUtils.)
-        key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyEncipherment))]
-    (doto builder
-      (.addExtension Extension/authorityKeyIdentifier false (.createAuthorityKeyIdentifier ext-util signing-certificate))
-      (.addExtension Extension/subjectKeyIdentifier false (.createSubjectKeyIdentifier ext-util subject-public-key))
-      (.addExtension Extension/basicConstraints true (BasicConstraints. false))
-      (.addExtension Extension/keyUsage true key-usage))
-    (.build builder content-signer)))
+  (let [key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyEncipherment))]
+    (build-certificate subject-public-key subject-x500-name signing-private-key signing-certificate key-usage)))
+
 
 ;;
 ;;
