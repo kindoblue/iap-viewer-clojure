@@ -1,5 +1,10 @@
+;;;
+;;;  This namespace contains functions to create data that will be used to test
+;;;  validation.
+;;;
 (ns iap-viewer.test.data
   (:import (java.security Security KeyPair KeyPairGenerator SecureRandom)
+           (javax.security.auth.x500 X500Principal)
            (org.bouncycastle.jce.provider BouncyCastleProvider)
            (org.bouncycastle.asn1.x500 X500Name)
            (org.bouncycastle.asn1.x509 Extension BasicConstraints KeyUsage)
@@ -10,6 +15,7 @@
 
 ;; see
 ;; http://www.bouncycastle.org/docs/pkixdocs1.5on/index.html
+;; http://www.bouncycastle.org/docs/docs1.5on/index.html
 ;; https://github.com/joschi/cryptoworkshop-bouncycastle/blob/master/src/main/java/cwguide/JcaUtils.java
 ;; http://www.cryptoworkshop.com/guide/cwguide-070313.pdf
 
@@ -30,18 +36,20 @@
 
 
 (defn get-certificate-builder
-  [issuer not-after subject public-key]
-  (let [x509-issuer  (X500Name. issuer)
+  [^String issuer
+   ^java.util.Date expiration
+   ^String subject
+   ^java.security.PublicKey public-key]
+  (let [x509-issuer  (X500Principal. issuer)
         serial       (BigInteger/valueOf 123)
         now          (java.util.Date. )
-        valid        (java.util.Date.)
-        x509-subject (X500Name. subject)]
+        x509-subject (X500Principal. subject)]
 
     ;; create the builder, correctly configured
     (JcaX509v3CertificateBuilder. x509-issuer
                                   serial
                                   now
-                                  valid
+                                  expiration
                                   x509-subject
                                   public-key)))
 
@@ -61,10 +69,11 @@
    subject-x500-name    ;; the x500 name of the subject
    signing-private-key  ;; the private key of the issuer (the intermediate)
    signing-certificate
+   expiration
    key-usage]
   (let [content-signer (build-content-signer signing-private-key)
-        signer-x500-name (.getSubjectX500Principal signing-certificate)
-        builder (get-certificate-builder subject-x500-name "a" signer-x500-name subject-public-key)
+        signer-x500-name (.getName (.getSubjectX500Principal signing-certificate))
+        builder (get-certificate-builder signer-x500-name expiration subject-x500-name subject-public-key)
         ext-util  (JcaX509ExtensionUtils.)]
     (doto builder
       (.addExtension Extension/authorityKeyIdentifier false (.createAuthorityKeyIdentifier ext-util signing-certificate))
@@ -78,10 +87,13 @@
 ;;
 ;;
 (defn build-root-certificate
-  [key-pair]
+  [^java.security.KeyPair key-pair
+   ^java.util.Date expiration
+   ^String name]
   (let [content-signer (build-content-signer (.getPrivate key-pair))
-        builder (get-certificate-builder "CN=Stefano" "a" "CN=Stefano" (.getPublic key-pair))]
-    (.build builder content-signer)))
+        builder (get-certificate-builder name expiration name (.getPublic key-pair))]
+    (-> (.build builder content-signer)
+        (convert-to-x509))))
 
 ;;
 ;;
@@ -92,9 +104,11 @@
    subject-x500-name
    signing-private-key  ;; the private key of the issuer (the CA in this case)
    ca-certificate       ;; the CA certificate
+   expiration           ;; expiration date
    ]
   (let [key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyCertSign KeyUsage/cRLSign))]
-    (build-certificate subject-public-key subject-x500-name signing-private-key ca-certificate key-usage)))
+    (-> (build-certificate subject-public-key subject-x500-name signing-private-key ca-certificate expiration key-usage)
+        (convert-to-x509))))
 
 ;;
 ;;
@@ -102,20 +116,14 @@
 ;;
 (defn build-end-certificate
   [subject-public-key   ;; the public key of the subject being certified
+   subject-x500-name    ;; the subject name
    signing-private-key  ;; the private key of the issuer (the intermediate)
-   signing-certificate       ;; the CA certificate
+   signing-certificate  ;; the CA certificate
+   expiration           ;; expiration date
    ]
-  (let [content-signer (build-content-signer signing-private-key)
-        signer-x500-name (.getSubjectX500Principal signing-certificate)
-        builder (get-certificate-builder "CN=End" "a" signer-x500-name subject-public-key)
-        ext-util  (JcaX509ExtensionUtils.)
-        key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyEncipherment))]
-    (doto builder
-      (.addExtension Extension/authorityKeyIdentifier false (.createAuthorityKeyIdentifier ext-util signing-certificate))
-      (.addExtension Extension/subjectKeyIdentifier false (.createSubjectKeyIdentifier ext-util subject-public-key))
-      (.addExtension Extension/basicConstraints true (BasicConstraints. false))
-      (.addExtension Extension/keyUsage true key-usage))
-    (.build builder content-signer)))
+  (let [key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyEncipherment))]
+    (-> (build-certificate subject-public-key subject-x500-name signing-private-key signing-certificate expiration key-usage)
+        (convert-to-x509))))
 
 ;;
 ;;
@@ -127,3 +135,37 @@
   (-> (JcaX509CertificateConverter.)
       (.setProvider "BC")
       (.getCertificate holder)))
+
+;;;
+;;;
+;;;
+(defn- one-day-after
+  [now]
+  (let [cal (java.util.Calendar/getInstance)]
+    (doto cal
+      (.setTime now)
+      (.add java.util.Calendar/DATE 1))
+    (.getTime cal)))
+
+
+
+;;;
+;;; 1) generate the key pair for the CA entity
+;;; 2) build the root CA certificate
+;;; 3) generate the key pair for intermediate entity
+;;; 4) build the intermediate certificate
+;;; 5) generate the key pair for end entity
+;;; 6) build the end certificate
+;;; 7) return the three certificate
+(defn generate-test-certificates
+  []
+  (let [now (java.util.Date.)
+        tomorrow (one-day-after now)
+        ca-key-pair (generate-rsa-keys)
+        intermediate-key-pair (generate-rsa-keys)
+        end-key-pair (generate-rsa-keys)
+        root-certificate (build-root-certificate ca-key-pair tomorrow "CN=Super Stefano")
+        intermediate-certificate (build-intermediate-certificate (.getPublic intermediate-key-pair) "CN=Intermediate Stefano" (.getPrivate ca-key-pair) root-certificate tomorrow)
+        end-certificate (build-intermediate-certificate (.getPublic intermediate-key-pair) "CN=End Stefano" (.getPrivate intermediate-key-pair) intermediate-certificate tomorrow)
+        ]
+    intermediate-certificate))
