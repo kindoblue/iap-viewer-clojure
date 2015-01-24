@@ -5,12 +5,19 @@
 (ns iap-viewer.test.data
   (:import (java.security Security KeyPair KeyPairGenerator SecureRandom)
            (javax.security.auth.x500 X500Principal)
+           (org.bouncycastle.util Store)
+           (org.bouncycastle.cert.jcajce JcaCertStore)
            (org.bouncycastle.jce.provider BouncyCastleProvider)
            (org.bouncycastle.asn1.x500 X500Name)
            (org.bouncycastle.asn1.x509 Extension BasicConstraints KeyUsage)
            (org.bouncycastle.cert.jcajce JcaX509v3CertificateBuilder)
            (org.bouncycastle.operator.jcajce JcaContentSignerBuilder)
            (org.bouncycastle.cert.jcajce JcaX509CertificateConverter JcaX509ExtensionUtils)
+           (org.bouncycastle.cms CMSSignedDataGenerator)
+           (org.bouncycastle.operator.jcajce JcaContentSignerBuilder)
+           (org.bouncycastle.cms.jcajce JcaSignerInfoGeneratorBuilder)
+           (org.bouncycastle.cms CMSProcessableByteArray)
+           (org.bouncycastle.operator.jcajce JcaDigestCalculatorProviderBuilder)
            (java.math BigInteger)))
 
 ;; see
@@ -67,7 +74,7 @@
 (defn build-certificate
   [subject-public-key   ;; the public key of the subject being certified
    subject-x500-name    ;; the x500 name of the subject
-   signing-private-key  ;; the private key of the issuer (the intermediate)
+   signing-private-key  ;; the private key of the issuer
    signing-certificate
    expiration
    key-usage]
@@ -81,6 +88,18 @@
       (.addExtension Extension/basicConstraints true (BasicConstraints. false))
       (.addExtension Extension/keyUsage true key-usage))
     (.build builder content-signer)))
+
+;;
+;;
+;;
+;;
+(defn- convert-to-x509
+  "Convert the X509CertificateHolder to a X509Certificate"
+  [holder]
+  (-> (JcaX509CertificateConverter.)
+      (.setProvider "BC")
+      (.getCertificate holder)))
+
 
 ;;
 ;;
@@ -125,16 +144,6 @@
     (-> (build-certificate subject-public-key subject-x500-name signing-private-key signing-certificate expiration key-usage)
         (convert-to-x509))))
 
-;;
-;;
-;;
-;;
-(defn- convert-to-x509
-  "Convert the X509CertificateHolder to a X509Certificate"
-  [holder]
-  (-> (JcaX509CertificateConverter.)
-      (.setProvider "BC")
-      (.getCertificate holder)))
 
 ;;;
 ;;;
@@ -158,14 +167,72 @@
 ;;; 6) build the end certificate
 ;;; 7) return the three certificate
 (defn generate-test-certificates
-  []
+  [^String root-subject-name
+   ^String intermediate-subject-name
+   ^String end-subject-name]
   (let [now (java.util.Date.)
         tomorrow (one-day-after now)
         ca-key-pair (generate-rsa-keys)
         intermediate-key-pair (generate-rsa-keys)
         end-key-pair (generate-rsa-keys)
-        root-certificate (build-root-certificate ca-key-pair tomorrow "CN=Super Stefano")
-        intermediate-certificate (build-intermediate-certificate (.getPublic intermediate-key-pair) "CN=Intermediate Stefano" (.getPrivate ca-key-pair) root-certificate tomorrow)
-        end-certificate (build-intermediate-certificate (.getPublic intermediate-key-pair) "CN=End Stefano" (.getPrivate intermediate-key-pair) intermediate-certificate tomorrow)
+        root-certificate (build-root-certificate ca-key-pair tomorrow root-subject-name)
+        intermediate-certificate (build-intermediate-certificate (.getPublic intermediate-key-pair) intermediate-subject-name (.getPrivate ca-key-pair) root-certificate tomorrow)
+        end-certificate (build-intermediate-certificate (.getPublic intermediate-key-pair) end-subject-name (.getPrivate intermediate-key-pair) intermediate-certificate tomorrow)
         ]
-    intermediate-certificate))
+    {:root root-certificate
+     :intermediate intermediate-certificate
+     :end end-certificate
+     :private (.getPrivate end-key-pair)}))
+
+;;
+;;  CREATE CMSSignedData
+;;  see https://www.bouncycastle.org/docs/pkixdocs1.5on/org/bouncycastle/cms/CMSSignedDataGenerator.html
+;;
+
+(defn create-cert-store
+  [{root-cert :root intermediate-cert :intermediate end-cert :end}]
+  (let [cert-list [root-cert intermediate-cert end-cert]
+        cert-store (JcaCertStore. cert-list)]
+    cert-store))
+
+(defn create-content-signer
+  [private-key]
+  (let [content-signer (JcaContentSignerBuilder. "SHA1withRSA")]
+    (-> content-signer
+        (.setProvider "BC")
+        (.build private-key))))
+
+(defn create-signer-info-generator
+  [content-signer
+   certificate]
+  (let [digest-calculator-builder
+        (-> (JcaDigestCalculatorProviderBuilder.)
+            (.setProvider "BC")
+            (.build))
+        generator-builder (JcaSignerInfoGeneratorBuilder. digest-calculator-builder)]
+    (.build generator-builder content-signer certificate)))
+
+(defn create-cms-generator
+  [{certificate :end private-key :private :as cert-map}]
+  (let [cert-store (create-cert-store cert-map)
+        generator (CMSSignedDataGenerator.)
+        content-signer (create-content-signer private-key)
+        signer-info-gen (create-signer-info-generator content-signer certificate)]
+    (doto generator
+      (.addSignerInfoGenerator signer-info-gen)
+      (.addCertificates cert-store))))
+
+(defn create-processable-data
+  [^String message]
+  (let [bytes (.getBytes message)]
+    (CMSProcessableByteArray. bytes)))
+
+
+;; entry point
+
+(defn create-signed-data
+  [^String message
+   cert-map]
+  (let [processable-data (create-processable-data message)
+        cms-generator (create-cms-generator cert-map)]
+    (.generate cms-generator processable-data true)))
