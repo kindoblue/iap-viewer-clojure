@@ -1,6 +1,7 @@
 (ns iap-viewer.test.validation
   (:use clojure.test
-        iap-viewer.validation))
+        iap-viewer.validation
+        iap-viewer.test.data))
 
 ;; macro to run tests on private functions
 ;; copied from http://nakkaya.com/2009/11/18/unit-testing-in-clojure/
@@ -33,3 +34,17 @@
         ;; is the subject the one from Apple?
         (is (= (.toString (.getSubjectDN apple-ca))
                "C=US,O=Apple Inc.,OU=Apple Certification Authority,CN=Apple Root CA"))))))
+
+(with-private-fns [iap-viewer.validation [validate-cert-path get-x509-certificates]]
+  (deftest test-cert-path
+    (testing "Verify we can validate the certification path"
+      (let [certificate-map (generate-test-certificates "CN=CA Stefano" "CN=Intermediate" "CN=End")
+            trust-anchor (:root certificate-map)
+            signed-data (create-signed-data "Lallero" certificate-map)]
+
+        ;(println (:intermediate certificate-map))
+        ;(println (:end certificate-map))
+        ; (println (get-x509-certificates  signed-data))
+        (validate-cert-path signed-data trust-anchor)
+
+        ))))

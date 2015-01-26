@@ -27,11 +27,6 @@
 ;; http://www.cryptoworkshop.com/guide/cwguide-070313.pdf
 
 
-;; TEMP init the bouncy castle provider
-(defn init-bc-provider
-  "Add Bouncy Castle as security provider"
-  []
-  (Security/addProvider (BouncyCastleProvider.)))
 
 ;; generate rsa key pair
 (defn generate-rsa-keys
@@ -85,7 +80,7 @@
     (doto builder
       (.addExtension Extension/authorityKeyIdentifier false (.createAuthorityKeyIdentifier ext-util signing-certificate))
       (.addExtension Extension/subjectKeyIdentifier false (.createSubjectKeyIdentifier ext-util subject-public-key))
-      (.addExtension Extension/basicConstraints true (BasicConstraints. false))
+      (.addExtension Extension/basicConstraints true (BasicConstraints. 0))
       (.addExtension Extension/keyUsage true key-usage))
     (.build builder content-signer)))
 
@@ -177,7 +172,7 @@
         end-key-pair (generate-rsa-keys)
         root-certificate (build-root-certificate ca-key-pair tomorrow root-subject-name)
         intermediate-certificate (build-intermediate-certificate (.getPublic intermediate-key-pair) intermediate-subject-name (.getPrivate ca-key-pair) root-certificate tomorrow)
-        end-certificate (build-intermediate-certificate (.getPublic intermediate-key-pair) end-subject-name (.getPrivate intermediate-key-pair) intermediate-certificate tomorrow)
+        end-certificate (build-end-certificate (.getPublic end-key-pair) end-subject-name (.getPrivate intermediate-key-pair) intermediate-certificate tomorrow)
         ]
     {:root root-certificate
      :intermediate intermediate-certificate
@@ -218,6 +213,7 @@
         generator (CMSSignedDataGenerator.)
         content-signer (create-content-signer private-key)
         signer-info-gen (create-signer-info-generator content-signer certificate)]
+    (println certificate)
     (doto generator
       (.addSignerInfoGenerator signer-info-gen)
       (.addCertificates cert-store))))

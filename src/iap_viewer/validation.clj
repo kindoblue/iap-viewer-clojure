@@ -30,7 +30,7 @@
       (.getCertificate holder)))
 
 ;; get the local CA certificate
-(defn- apple-ca-cert []
+(defn apple-ca-cert []
   (let [cert (clojure.java.io/resource "AppleIncRootCertificate.crt")]
     (with-open [stream (.openStream cert)]
       (.generateCertificate (CertificateFactory/getInstance "X.509" "BC") stream ))))
@@ -38,13 +38,13 @@
 ;; get the trust anchor, wrapped in a set.
 ;; the trust anchor is based on our LOCAL apple CA certificate
 (defn- trust-anchor-set
-  []
-  #{(TrustAnchor. (apple-ca-cert) nil)})
+  [trust-anchor]
+  #{(TrustAnchor. trust-anchor nil)})
 
 (defn- create-pkix-params
   "Returns the pkix parameters based of trust anchor object and correcty configured"
-  []
-  (doto (PKIXParameters. (trust-anchor-set))
+  [trust-anchor]
+  (doto (PKIXParameters. (trust-anchor-set trust-anchor))
     (.setDate (java.util.Date.))
     (.setRevocationEnabled false)))
 
@@ -105,10 +105,11 @@
 ;; 4) validate the cert path (using the helper function)
 (defn- validate-cert-path
   "Validates the certificate chain within the gived signed data object"
-  [^org.bouncycastle.cms.CMSSignedData signed-data]
+  [^org.bouncycastle.cms.CMSSignedData signed-data
+   trust-anchor]
   (let [certs (get-x509-certificates signed-data)
         cert-path (cert-path-from-list certs)
-        pkix-params (create-pkix-params)]
+        pkix-params (create-pkix-params trust-anchor)]
     (validate-cert-path-helper cert-path pkix-params)))
 
 
@@ -128,9 +129,10 @@
 ;;      entry point
 ;; =======================
 (defn verify-signature
-  [^org.bouncycastle.cms.CMSSignedData signed-data]
+  [^org.bouncycastle.cms.CMSSignedData signed-data
+   trust-anchor]
   (let [signer-info (get-signer-info signed-data)
         signer-cert (get-signer-certificate signed-data)
         with-verifier (create-verifier signer-cert)
-        dummy (validate-cert-path signed-data)]
+        dummy (validate-cert-path signed-data trust-anchor)]
     (.verify signer-info with-verifier)))

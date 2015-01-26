@@ -56,9 +56,10 @@
   "Return a list of maps, one for every purchase. As input the url to the apple receipt"
   [receipt-url]
   (with-open [stream (.openStream receipt-url)]
-    (let [signed-data (common/get-cms-signed-data stream)]
-      (validation/init-bc-provider)
-      (validation/verify-signature signed-data)
+    (let [dummy (validation/init-bc-provider)
+          signed-data (common/get-cms-signed-data stream)
+          trust-anchor (validation/apple-ca-cert)]
+      (validation/verify-signature signed-data trust-anchor)
       (map parse-purchase (get-raw-purchases (common/get-content signed-data))))))
 
 ;; to be continued
