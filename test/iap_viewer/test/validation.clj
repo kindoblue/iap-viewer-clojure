@@ -44,7 +44,7 @@
 
         ;(println (:intermediate certificate-map))
         ;(println (:end certificate-map))
-        ; (println (get-x509-certificates  signed-data))
+        (println (get-x509-certificates  signed-data))
         (validate-cert-path signed-data trust-anchor)
 
         ))))

@@ -97,6 +97,8 @@
       (.getCertificate holder)))
 
 
+
+
 ;;
 ;;
 ;;
@@ -106,7 +108,11 @@
    ^java.util.Date expiration
    ^String name]
   (let [content-signer (build-content-signer (.getPrivate key-pair))
-        builder (get-certificate-builder name expiration name (.getPublic key-pair))]
+        builder (get-certificate-builder name expiration name (.getPublic key-pair))
+        key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyCertSign KeyUsage/cRLSign))]
+    (doto builder
+      (.addExtension Extension/basicConstraints true (BasicConstraints. 1))
+      (.addExtension Extension/keyUsage true key-usage))
     (-> (.build builder content-signer)
         (convert-to-x509))))
 
@@ -122,7 +128,7 @@
    expiration           ;; expiration date
    ]
   (let [basic-constraints (BasicConstraints. 0)
-        key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyCertSign KeyUsage/cRLSign))]
+        key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyCertSign))]
     (-> (build-certificate subject-public-key subject-x500-name signing-private-key ca-certificate expiration basic-constraints key-usage)
         (convert-to-x509))))
 
@@ -216,7 +222,6 @@
         generator (CMSSignedDataGenerator.)
         content-signer (create-content-signer private-key)
         signer-info-gen (create-signer-info-generator content-signer certificate)]
-    (println certificate)
     (doto generator
       (.addSignerInfoGenerator signer-info-gen)
       (.addCertificates cert-store))))
