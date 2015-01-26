@@ -72,6 +72,7 @@
    signing-private-key  ;; the private key of the issuer
    signing-certificate
    expiration
+   basic-constraints
    key-usage]
   (let [content-signer (build-content-signer signing-private-key)
         signer-x500-name (.getName (.getSubjectX500Principal signing-certificate))
@@ -80,7 +81,7 @@
     (doto builder
       (.addExtension Extension/authorityKeyIdentifier false (.createAuthorityKeyIdentifier ext-util signing-certificate))
       (.addExtension Extension/subjectKeyIdentifier false (.createSubjectKeyIdentifier ext-util subject-public-key))
-      (.addExtension Extension/basicConstraints true (BasicConstraints. 0))
+      (.addExtension Extension/basicConstraints true basic-constraints)
       (.addExtension Extension/keyUsage true key-usage))
     (.build builder content-signer)))
 
@@ -120,8 +121,9 @@
    ca-certificate       ;; the CA certificate
    expiration           ;; expiration date
    ]
-  (let [key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyCertSign KeyUsage/cRLSign))]
-    (-> (build-certificate subject-public-key subject-x500-name signing-private-key ca-certificate expiration key-usage)
+  (let [basic-constraints (BasicConstraints. 0)
+        key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyCertSign KeyUsage/cRLSign))]
+    (-> (build-certificate subject-public-key subject-x500-name signing-private-key ca-certificate expiration basic-constraints key-usage)
         (convert-to-x509))))
 
 ;;
@@ -135,8 +137,9 @@
    signing-certificate  ;; the CA certificate
    expiration           ;; expiration date
    ]
-  (let [key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyEncipherment))]
-    (-> (build-certificate subject-public-key subject-x500-name signing-private-key signing-certificate expiration key-usage)
+  (let [basic-constraints (BasicConstraints. false)
+        key-usage (KeyUsage. (bit-or KeyUsage/digitalSignature KeyUsage/keyEncipherment))]
+    (-> (build-certificate subject-public-key subject-x500-name signing-private-key signing-certificate expiration basic-constraints key-usage)
         (convert-to-x509))))
 
 
