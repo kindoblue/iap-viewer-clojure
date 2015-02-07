@@ -21,10 +21,13 @@
 ;; register the fixture
 (use-fixtures :once my-fixture)
 
-;; test the local root CA from Apple
-(with-private-fns [iap-viewer.validation [apple-ca-cert]]
+;; ---------------------
+;; first set of tests
+;; ---------------------
+(with-private-fns [iap-viewer.validation [apple-ca-cert
+                                          trust-anchor-set]]
   (deftest test-root-certificate
-    (testing "Verify we can load the local root CA certificate"
+    (testing "Local root CA certificate"
       (let [apple-ca  (apple-ca-cert)]
 
         ;; is the certificate a x509 object?
@@ -33,10 +36,25 @@
 
         ;; is the subject the one from Apple?
         (is (= (.toString (.getSubjectDN apple-ca))
-               "C=US,O=Apple Inc.,OU=Apple Certification Authority,CN=Apple Root CA"))))))
+               "C=US,O=Apple Inc.,OU=Apple Certification Authority,CN=Apple Root CA"))))
+
+    (testing "Trust anchor"
+      (let [certificate  (generate-single-certificate "CN=Sample")
+            output-set (trust-anchor-set certificate)
+            trust-anchor (first output-set)]
+
+        (is (= (count output-set) 1))
+
+        (is (= (.toString (type trust-anchor))
+               "class java.security.cert.TrustAnchor"))
+
+        (is (= (.getTrustedCert trust-anchor) certificate))))))
 
 
-;; test the certification path
+
+;; ---------------------
+;; second set of tests
+;; ---------------------
 (with-private-fns [iap-viewer.validation [cert-path-from-list
                                           validate-cert-path
                                           get-x509-certificates
