@@ -188,6 +188,15 @@
      :end end-certificate
      :private (.getPrivate end-key-pair)}))
 
+
+(defn generate-single-certificate
+  [^String subject-name]
+  (let [now (java.util.Date.)
+        tomorrow (one-day-after now)
+        ca-key-pair (generate-rsa-keys)]
+    (build-root-certificate ca-key-pair tomorrow subject-name)))
+
+
 ;;
 ;;  CREATE CMSSignedData
 ;;  see https://www.bouncycastle.org/docs/pkixdocs1.5on/org/bouncycastle/cms/CMSSignedDataGenerator.html

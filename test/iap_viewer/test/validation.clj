@@ -21,7 +21,7 @@
 ;; register the fixture
 (use-fixtures :once my-fixture)
 
-;; test validation
+;; test the local root CA from Apple
 (with-private-fns [iap-viewer.validation [apple-ca-cert]]
   (deftest test-root-certificate
     (testing "Verify we can load the local root CA certificate"
@@ -35,16 +35,33 @@
         (is (= (.toString (.getSubjectDN apple-ca))
                "C=US,O=Apple Inc.,OU=Apple Certification Authority,CN=Apple Root CA"))))))
 
-(with-private-fns [iap-viewer.validation [validate-cert-path get-x509-certificates]]
-  (deftest test-cert-path
+
+;; test the certification path
+(with-private-fns [iap-viewer.validation [cert-path-from-list validate-cert-path get-x509-certificates]]
+  (deftest test-validate-cert-path
+
+    (testing "Creation of certificate path from a list of certificate"
+      (let [cert-map (generate-test-certificates "CN=CA Stefano" "CN=Intermediate" "CN=End")
+            certificate-list (list  (:root cert-map) (:intermediate cert-map) (:end cert-map))
+            cert-path (cert-path-from-list certificate-list)]
+
+        (is (= (.toString (type cert-path))
+               "class org.bouncycastle.jcajce.provider.asymmetric.x509.PKIXCertPath"))
+
+
+        cert-path))
+
+
     (testing "Verify we can validate the certification path"
       (let [certificate-map (generate-test-certificates "CN=CA Stefano" "CN=Intermediate" "CN=End")
             trust-anchor (:root certificate-map)
-            signed-data (create-signed-data "Lallero" certificate-map)]
+            signed-data (create-signed-data "Lallero" certificate-map)
+            wrong-trust-anchor (generate-single-certificate "CN=WRONG!!")]
 
-        ;(println (:intermediate certificate-map))
-        ;(println (:end certificate-map))
-        (println (get-x509-certificates  signed-data))
-        (validate-cert-path signed-data trust-anchor)
 
-        ))))
+        ;; check the nominal case
+        (is (validate-cert-path signed-data trust-anchor))
+
+        ;; check the error case
+        (is (thrown? java.security.cert.CertPathValidatorException
+                     (validate-cert-path signed-data wrong-trust-anchor)))))))

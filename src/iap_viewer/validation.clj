@@ -92,11 +92,6 @@
 
 
 
-(defn- validate-cert-path-helper
-  [cert-path params]
-  (let [validator (CertPathValidator/getInstance "PKIX" "BC")]
-    (.validate validator cert-path params)))
-
 ;; it validates the certificate chain contained into the
 ;; given signed data.
 ;; 1) get the list of the certificates in x509 format
@@ -104,13 +99,15 @@
 ;; 3) creates a pkix parameters to drive the validation
 ;; 4) validate the cert path (using the helper function)
 (defn- validate-cert-path
-  "Validates the certificate chain within the gived signed data object"
+  "Validates the certificate chain within the given signed data object
+   using the input trust anchor"
   [^org.bouncycastle.cms.CMSSignedData signed-data
    trust-anchor]
   (let [certs (get-x509-certificates signed-data)
         cert-path (cert-path-from-list certs)
-        pkix-params (create-pkix-params trust-anchor)]
-    (validate-cert-path-helper cert-path pkix-params)))
+        pkix-params (create-pkix-params trust-anchor)
+        validator (CertPathValidator/getInstance "PKIX" "BC")]
+    (.validate validator cert-path pkix-params)))
 
 
 ;; given a certificate, creates a verifier object that
@@ -133,6 +130,9 @@
    trust-anchor]
   (let [signer-info (get-signer-info signed-data)
         signer-cert (get-signer-certificate signed-data)
-        with-verifier (create-verifier signer-cert)
-        dummy (validate-cert-path signed-data trust-anchor)]
-    (.verify signer-info with-verifier)))
+        with-verifier (create-verifier signer-cert)]
+    (try
+      (validate-cert-path signed-data trust-anchor)
+      (.verify signer-info with-verifier)
+      true
+      (catch Exception e nil))))
