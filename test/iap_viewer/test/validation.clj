@@ -25,7 +25,8 @@
 ;; first set of tests
 ;; ---------------------
 (with-private-fns [iap-viewer.validation [apple-ca-cert
-                                          trust-anchor-set]]
+                                          trust-anchor-set
+                                          create-pkix-params]]
   (deftest test-root-certificate
     (testing "Local root CA certificate"
       (let [apple-ca  (apple-ca-cert)]
@@ -40,15 +41,21 @@
 
     (testing "Trust anchor"
       (let [certificate  (generate-single-certificate "CN=Sample")
-            output-set (trust-anchor-set certificate)
-            trust-anchor (first output-set)]
+            trust-set (trust-anchor-set certificate)
+            trust-anchor (first trust-set)
+            pkix-params (create-pkix-params certificate)]
 
-        (is (= (count output-set) 1))
+        (is (= (count trust-set) 1))
 
         (is (= (.toString (type trust-anchor))
                "class java.security.cert.TrustAnchor"))
 
-        (is (= (.getTrustedCert trust-anchor) certificate))))))
+        (is (= (.getTrustedCert trust-anchor) certificate))
+
+        (is (= (.toString (type pkix-params))
+               "class java.security.cert.PKIXParameters"))
+
+        (is (not (.isRevocationEnabled pkix-params)))))))
 
 
 

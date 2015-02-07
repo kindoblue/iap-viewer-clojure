@@ -38,13 +38,13 @@
 ;; get the trust anchor, wrapped in a set.
 ;; the trust anchor is based on our LOCAL apple CA certificate
 (defn- trust-anchor-set
-  [trust-anchor]
-  #{(TrustAnchor. trust-anchor nil)})
+  [^java.security.cert.X509Certificate certificate]
+  #{(TrustAnchor. certificate nil)})
 
 (defn- create-pkix-params
   "Returns the pkix parameters based of trust anchor object and correcty configured"
-  [trust-anchor]
-  (doto (PKIXParameters. (trust-anchor-set trust-anchor))
+  [^java.security.cert.X509Certificate certificate]
+  (doto (PKIXParameters. (trust-anchor-set certificate))
     (.setDate (java.util.Date.))
     (.setRevocationEnabled false)))
 
