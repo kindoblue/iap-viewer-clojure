@@ -37,8 +37,12 @@
 
 
 ;; test the certification path
-(with-private-fns [iap-viewer.validation [cert-path-from-list validate-cert-path get-x509-certificates]]
-  (deftest test-validate-cert-path
+(with-private-fns [iap-viewer.validation [cert-path-from-list
+                                          validate-cert-path
+                                          get-x509-certificates
+                                          get-signer-certificate
+                                          get-signer-id]]
+  (deftest test-validation
 
     (testing "Creation of certificate path from a list of certificate"
       (let [cert-map (generate-test-certificates "CN=CA Stefano" "CN=Intermediate" "CN=End")
@@ -48,11 +52,12 @@
         (is (= (.toString (type cert-path))
                "class org.bouncycastle.jcajce.provider.asymmetric.x509.PKIXCertPath"))
 
+        (is (= (.getType cert-path) "X.509"))
 
-        cert-path))
+        (is (= (count (.getCertificates cert-path)) 3))))
 
 
-    (testing "Verify we can validate the certification path"
+    (testing "Validation of the certification path"
       (let [certificate-map (generate-test-certificates "CN=CA Stefano" "CN=Intermediate" "CN=End")
             trust-anchor (:root certificate-map)
             signed-data (create-signed-data "Lallero" certificate-map)
@@ -64,4 +69,26 @@
 
         ;; check the error case
         (is (thrown? java.security.cert.CertPathValidatorException
-                     (validate-cert-path signed-data wrong-trust-anchor)))))))
+                     (validate-cert-path signed-data wrong-trust-anchor)))))
+
+    (testing "Retrival of signer certificate and infos from signed data"
+      (let [certificate-map (generate-test-certificates "CN=CA Stefano" "CN=Intermediate" "CN=End")
+            trust-anchor (:root certificate-map)
+            signed-data (create-signed-data "Lallero" certificate-map)
+            signer-cert (get-signer-certificate signed-data)
+            signer-id   (get-signer-id signed-data)
+            ]
+
+        (is (= (.toString (type signer-cert))
+               "class org.bouncycastle.jcajce.provider.asymmetric.x509.X509CertificateObject"))
+
+        (is (= (.. signer-cert getSubjectDN getName) "CN=End"))
+
+        (is (= (.. signer-cert getIssuerDN getName) "CN=Intermediate"))
+
+        (is (= (.toString (type signer-id))
+               "class org.bouncycastle.cms.SignerId"))
+
+        (is (= 123 (.getSerialNumber signer-id)))
+
+        ))))
