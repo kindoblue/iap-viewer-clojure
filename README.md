@@ -24,6 +24,11 @@ The first time you need to run a small script to put in place some needed files,
 [1]: https://github.com/technomancy/leiningen
 [2]: http://bower.io
 
+## Testing
+I've written around 120 sloc for validation of signed data; more than double amount of code for testin it. To run the unit tests
+
+    lein test
+
 ## Running
 
 To start a web server for the application, run:
